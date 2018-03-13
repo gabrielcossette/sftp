@@ -15,6 +15,9 @@ RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /et
 COPY sshd_config /etc/ssh/sshd_config
 COPY entrypoint /
 
+ADD entrypoint.patch ./
+RUN patch entrypoint entrypoint.patch && rm entrypoint.patch
+
 EXPOSE 22
 
 ENTRYPOINT ["/entrypoint"]
