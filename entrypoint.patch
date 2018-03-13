@@ -1,0 +1,63 @@
+--- entrypoint	2018-03-12 22:45:15.770158113 -0400
++++ entrypoint_modif	2018-01-12 23:07:36.000000000 -0500
+@@ -1,6 +1,34 @@
+ #!/bin/bash
+ set -e
+ 
++# usage: file_env VAR [DEFAULT]
++#    ie: file_env 'XYZ_DB_PASSWORD' 'example'
++# (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of
++#  "$XYZ_DB_PASSWORD" from a file, especially for Docker's secrets feature)
++file_env() {
++	local var="$1"
++	local fileVar="${var}_FILE"
++	local def="${2:-}"
++	if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
++		echo >&2 "error: both $var and $fileVar are set (but are exclusive)"
++		exit 1
++	fi
++	local val="$def"
++	if [ "${!var:-}" ]; then
++		val="${!var}"
++	elif [ "${!fileVar:-}" ]; then
++		val="$(< "${!fileVar}")"
++	fi
++	export "$var"="$val"
++	unset "$fileVar"
++}
++
++file_env 'USER'
++file_env 'PASS'
++file_env 'UID'
++file_env 'GID'
++file_env 'DIR'
++
+ # Paths
+ userConfPath="/etc/sftp/users.conf"
+ userConfPathLegacy="/etc/sftp-users.conf"
+@@ -36,20 +64,19 @@
+ function createUser() {
+     log "Parsing user data: \"$@\""
+ 
+-    IFS=':' read -a args <<< $@
+     index=0
+ 
+-    user="${args[0]}"; validateArg "username" "$user" "$reUser" || return 1
+-    pass="${args[1]}"; validateArg "password" "$pass" "$rePass" || return 1
++    user="$USER"; validateArg "username" "$user" "$reUser" || return 1
++    pass="$PASS"; validateArg "password" "$pass" "$rePass" || return 1
+ 
+     if [ "${args[2]}" == "e" ]; then
+         chpasswdOptions="-e"
+         index=1
+     fi
+ 
+-    uid="${args[$[$index+2]]}"; validateArg "UID" "$uid" "$reUid" || return 1
+-    gid="${args[$[$index+3]]}"; validateArg "GID" "$gid" "$reGid" || return 1
+-    dir="${args[$[$index+4]]}"; validateArg "dirs" "$dir" "$reDir" || return 1
++    uid="$UID"; validateArg "UID" "$uid" "$reUid" || return 1
++    gid="$GID"; validateArg "GID" "$gid" "$reGid" || return 1
++    dir="$DIR"; validateArg "dirs" "$dir" "$reDir" || return 1
+ 
+     if getent passwd $user > /dev/null; then
+         log "WARNING: User \"$user\" already exists. Skipping."
