@@ -12,10 +12,8 @@ RUN apt-get update && \
     rm -f /etc/ssh/ssh_host_*key*
 
 COPY sshd_config /etc/ssh/sshd_config
-COPY entrypoint /
 
-ADD entrypoint.patch ./
-RUN patch entrypoint entrypoint.patch && rm entrypoint.patch
+ADD entrypoint entrypoint
 
 EXPOSE 22
 
